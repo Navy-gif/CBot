@@ -62,10 +62,10 @@ namespace CBot
 
         public Intents(string [] intents = null)
         {
-            if (intents != null) Set(intents);
+            if (intents != null) Serialise(intents);
         }
 
-        public void Set(string[] intents)
+        public void Serialise(string[] intents)
         {
             _Intents = intents;
             _Integer = 0;
@@ -95,31 +95,24 @@ namespace CBot
     class BotConfig
     {
 
-        private string _token;
-        public string Token {
-            set { _token = value; }
-            get { return _token; }
-        }
+        public string Token { get; set; }
 
         private Intents _intents = new Intents();
         public string[] Intents {
-            set { _intents.Set(value); }
+            set { _intents.Serialise(value); }
             get { return _intents.Strings(); }
         }
 
-        private string _WSURI;
-        public string WSURI
-        {
-            set { _WSURI = value; }
-            get { return _WSURI; }
-        }
+        public string WSURI { get; set; }
+
+        public string GWVersion { get; set; }
 
         public override string ToString()
         {
             //PropertyInfo[] properties = typeof(BotConfig).GetProperties();
             //Console.WriteLine("BotConfig properties");
             //foreach (var property in properties) Console.WriteLine(property);
-            return $"Token: {Token}\nIntents: {_intents}\nCalculated intents: {_intents.Integer}";
+            return $"Token: {Token}\nIntents: {_intents}\nCalculated intents: {_intents.Integer}\nGWVersion: {GWVersion}";
         }
 
     }

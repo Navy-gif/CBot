@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace CBot
 {
@@ -9,6 +10,11 @@ namespace CBot
     {
 
         static void Main(string[] args)
+        {
+            MainAsync(args).GetAwaiter().GetResult();
+        }
+
+        static async Task MainAsync(string[] args)
         {
 
             Console.WriteLine("Starting client.");
@@ -20,7 +26,10 @@ namespace CBot
 
             //Start client
             Client Client = new Client(config);
-            Client.Login();
+            await Client.Login();
+            
+            Thread.Sleep(10000);
+            await Client.Logout();
             Thread.Sleep(10000);
 
         }

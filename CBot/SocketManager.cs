@@ -6,6 +6,25 @@ using System.IO;
 
 namespace CBot
 {
+    class SocketMessage : EventArgs
+    {
+        public string Raw
+        {
+            get;
+            set;
+        } = "";
+
+        public SocketMessage(string message)
+        {
+            this.Raw = message;
+        }
+
+        public override string ToString()
+        {
+            return Raw;
+        }
+
+    }
     // TODO: Rewrite this into a proper websocket wrapper, not necessarily just for a discord bot
     class SocketManager
     {
@@ -18,7 +37,6 @@ namespace CBot
         public SocketManager(Client client)
         {
             Client = client;
-
         }
         
         public async Task Connect(Uri Target)
@@ -30,12 +48,14 @@ namespace CBot
                 else Socket.Dispose();
             }
 
+            Console.WriteLine("Opening socket");
             Socket = new ClientWebSocket();
             if (CTS != null) CTS.Dispose();
             CTS = new CancellationTokenSource();
 
             await Socket.ConnectAsync(Target, CTS.Token);
             // Add a receiver method that listens for incoming data from the socket
+            Console.WriteLine(CTS.Token);
             await Task.Factory.StartNew(Receiver, CTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         }
@@ -45,6 +65,7 @@ namespace CBot
             if (Socket is null) return;
             if(Socket.State == WebSocketState.Open)
             {
+                Console.WriteLine("Closing socket...");
                 CTS.CancelAfter(2000);
                 await Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CTS.Token);
                 // await Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CTS.Token);
@@ -54,6 +75,7 @@ namespace CBot
             Socket = null;
             CTS.Dispose();
             CTS = null;
+            Console.WriteLine("Socket closed");
 
         }
 
@@ -89,15 +111,26 @@ namespace CBot
 
         }
 
-        public virtual async void HandleReceive(MemoryStream incoming)
+        public virtual void HandleReceive(MemoryStream incoming)
         {
-            Console.WriteLine("New message from socket:");
+            // Console.WriteLine("New message from socket:");
             byte[] Buffer = new byte[incoming.Length];
             incoming.Read(Buffer);
-            string Message = System.Text.Encoding.UTF8.GetString(Buffer);
-            Console.WriteLine(Message);
-            await Disconnect();
+            string _Message = System.Text.Encoding.UTF8.GetString(Buffer);
+            // Console.WriteLine(_Message);
+
+            SocketMessage msg = new SocketMessage(_Message);
+
+            OnSocketEvent(msg);
+
         }
-            
+
+        public event EventHandler<SocketMessage> SocketEvent;
+        protected virtual void OnSocketEvent(SocketMessage args)
+        {
+            EventHandler<SocketMessage> handler = SocketEvent;
+            handler?.Invoke(this, args);
+        }
+
     }
 }
