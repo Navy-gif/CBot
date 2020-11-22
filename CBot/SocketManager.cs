@@ -113,11 +113,9 @@ namespace CBot
 
         public virtual void HandleReceive(MemoryStream incoming)
         {
-            // Console.WriteLine("New message from socket:");
             byte[] Buffer = new byte[incoming.Length];
             incoming.Read(Buffer);
             string _Message = System.Text.Encoding.UTF8.GetString(Buffer);
-            // Console.WriteLine(_Message);
 
             SocketMessage msg = new SocketMessage(_Message);
 

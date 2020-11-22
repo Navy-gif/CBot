@@ -48,6 +48,20 @@ namespace CBot
 
     }
 
+    enum PacketType
+    {
+        Dispatch = 0,
+        Heartbeat = 1,
+        Identify = 2,
+        PresenceUpdate = 3,
+        VoiceStateUpdate = 4,
+        Resume = 6,
+        Reconnect = 7,
+        RequestGuildMembers = 8,
+        InvalidSession = 9,
+        Hello = 10,
+        HeartbeatAck = 11
+    }
 
     class Client
     {
@@ -87,13 +101,60 @@ namespace CBot
         private void OnSocketEvent(object sender, SocketMessage e)
         {
             Console.WriteLine("Event came through to client:");
-            Console.WriteLine(e);
             DiscordPacket Packet = JsonSerializer.Deserialize<DiscordPacket>(e.Raw);
             Packet.Raw = e.Raw;
-
             Console.WriteLine(Packet);
+
+            ResolvePacketType(Packet);
+
         }
 
+        public void ResolvePacketType(DiscordPacket Packet)
+        {
+
+            switch(Packet.op)
+            {
+                case (int)PacketType.Dispatch:
+
+                    break;
+                case (int)PacketType.Heartbeat:
+
+                    break;
+                case (int)PacketType.Identify:
+
+                    break;
+                case (int)PacketType.PresenceUpdate:
+
+                    break;
+                case (int)PacketType.VoiceStateUpdate:
+
+                    break;
+                case (int)PacketType.Resume:
+
+                    break;
+                case (int)PacketType.Reconnect:
+
+                    break;
+                case (int)PacketType.RequestGuildMembers:
+
+                    break;
+                case (int)PacketType.InvalidSession:
+
+                    break;
+                case (int)PacketType.Hello:
+                    PacketHello(Packet);
+                    break;
+                case (int)PacketType.HeartbeatAck:
+
+                    break;
+            }
+
+        }
+
+        private void PacketHello(DiscordPacket Packet)
+        {
+            Console.WriteLine("Received hello packet");
+        }
         public async Task Login(string token = null)
         {
             if (token != null && Config.Token is null) Config.Token = token;
