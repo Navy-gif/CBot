@@ -1,0 +1,18 @@
+{
+  "Token": "TOKEN",
+  "Intents": [
+    "GUILDS",
+    "GUILD_MEMBERS",
+    "GUILD_BANS",
+    "GUILD_EMOJIS",
+    "GUILD_WEBHOOKS",
+    "GUILD_INVITES",
+    "GUILD_VOICE_STATES",
+    "GUILD_MESSAGES",
+    "GUILD_MESSAGE_REACTIONS",
+    "DIRECT_MESSAGES",
+    "DIRECT_MESSAGE_REACTIONS"
+  ],
+  "WSURI": "wss://gateway.discord.gg/",
+  "temp": "?v=6&encoding=json"
+}
