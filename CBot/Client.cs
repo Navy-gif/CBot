@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CBot.DiscordPayloads;
+using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text;
@@ -29,7 +30,7 @@ namespace CBot
             set;
         }
 
-        public Dictionary<string, object> d
+        public Dictionary<string, JsonElement> d
         {
             get;
             set;
@@ -50,17 +51,18 @@ namespace CBot
 
     enum PacketType
     {
-        Dispatch = 0,
-        Heartbeat = 1,
-        Identify = 2,
-        PresenceUpdate = 3,
-        VoiceStateUpdate = 4,
-        Resume = 6,
-        Reconnect = 7,
-        RequestGuildMembers = 8,
-        InvalidSession = 9,
-        Hello = 10,
-        HeartbeatAck = 11
+        Dispatch = 0,           // Receive
+        Heartbeat = 1,          // Receive & Send
+        Identify = 2,           // Send
+        PresenceUpdate = 3,     // Send
+        VoiceStateUpdate = 4,   // Send
+                                // 5 doesn't exist, possibly a future gateway op
+        Resume = 6,             // Send
+        Reconnect = 7,          // Receive
+        RequestGuildMembers = 8,// Send
+        InvalidSession = 9,     // Receive
+        Hello = 10,             // Receive
+        HeartbeatAck = 11       // Receive
     }
 
     class Client
@@ -74,6 +76,9 @@ namespace CBot
         }
 
         private SocketManager WS = null;
+
+        private int HeartbeatInterval;
+        private CancellationTokenSource HeartbeatCTS;
 
         public Client(BotConfig config)
         {
@@ -145,16 +150,44 @@ namespace CBot
                     PacketHello(Packet);
                     break;
                 case (int)PacketType.HeartbeatAck:
-
+                    HeartbeatAck(Packet);
                     break;
             }
 
         }
 
-        private void PacketHello(DiscordPacket Packet)
+        private async void PacketHello(DiscordPacket Packet)
         {
+            // WS should identify to the gateway after receiving this
             Console.WriteLine("Received hello packet");
+            Console.WriteLine(Packet.d["heartbeat_interval"]);
+            HeartbeatInterval = Packet.d["heartbeat_interval"].GetInt32();
+
+            if (HeartbeatCTS != null) HeartbeatCTS.Dispose();
+            HeartbeatCTS = new CancellationTokenSource();
+
+            Console.WriteLine("Starting heartbeat");
+            await Task.Factory.StartNew(this.Heartbeat, HeartbeatCTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
+
+        private async Task Heartbeat()
+        {
+            CancellationToken Token = HeartbeatCTS.Token;
+            while(!Token.IsCancellationRequested)
+            {
+                Console.WriteLine("Sending heartbeat");
+                string Message = JsonSerializer.Serialize(new Heartbeat());
+                Console.WriteLine(Message);
+                await WS.Send(Message);
+                await Task.Delay(HeartbeatInterval, Token);
+            }
+        }
+
+        private void HeartbeatAck(DiscordPacket Packet)
+        {
+            Console.WriteLine("Heartbeat acknowledged");
+        }
+
         public async Task Login(string token = null)
         {
             if (token != null && Config.Token is null) Config.Token = token;
