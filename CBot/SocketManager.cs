@@ -7,64 +7,43 @@ using System.Text;
 
 namespace CBot
 {
-    class SocketMessage : EventArgs
-    {
-        public string Raw
-        {
-            get;
-            set;
-        } = "";
-
-        public SocketMessage(string message)
-        {
-            this.Raw = message;
-        }
-
-        public override string ToString()
-        {
-            return Raw;
-        }
-
-    }
     // TODO: Rewrite this into a proper websocket wrapper, not necessarily just for a discord bot
     class SocketManager
     {
 
-        public Client Client;
         private ClientWebSocket Socket = null;
         private CancellationTokenSource CTS = null;
         private int BufferSize { get; set; } = 4096;
 
         private SemaphoreSlim SendBusy;
 
-        public SocketManager(Client client)
+        public SocketManager()
         {
-            Client = client;
             SendBusy = new SemaphoreSlim(1);
         }
 
         public async Task Send(string Message)
         {
 
-            Console.WriteLine("Send pre-check");
+            EmitDebug("Send pre-check");
             if (Socket is null) return;
             if (Socket.State != WebSocketState.Open && Socket.State != WebSocketState.CloseReceived) return;
-            Console.WriteLine("Pre-check success\nAwaiting and setting semaphore");
+            EmitDebug("Pre-check success\nAwaiting and setting semaphore");
 
             await SendBusy.WaitAsync();
             byte[] Bytes = Encoding.UTF8.GetBytes(Message);
 
             try
             {
-                Console.WriteLine($"Starting send of message: \n{Message}");
+                EmitDebug($"Starting send of message: \n{Message}");
                 int len = Bytes.Length;
                 int Segments = len / BufferSize;
                 if (len % BufferSize != 0) Segments++;
-                Console.WriteLine($"{Segments} segments to send");
+                EmitDebug($"{Segments} segments to send");
 
                 for(int i = 0; i < Segments; i++)
                 {
-                    Console.WriteLine($"Sending segment {i+1} of {Segments}");
+                    EmitDebug($"Sending segment {i+1} of {Segments}");
                     int Start = BufferSize * i;
                     int SegmentLength = Math.Min(BufferSize, len - Start);
 
@@ -73,24 +52,28 @@ namespace CBot
 
             } catch
             {
-                Console.WriteLine("Some error while sending?");
+                EmitDebug("Some error while sending?");
             } finally
             {
-                Console.WriteLine("Message sent, releasing semaphore");
+                EmitDebug("Message sent, releasing semaphore");
                 SendBusy.Release();
             }
         }
         
         public async Task Connect(Uri Target)
         {
-
-            if(Socket != null)
+            EmitDebug($"Attempting to connect to {Target.OriginalString}");
+            if (Socket != null)
             {
-                if (Socket.State == WebSocketState.Open) return;
+                if (Socket.State == WebSocketState.Open)
+                {
+                    EmitDebug("Socket already connected.");
+                    return;
+                }
                 else Socket.Dispose();
             }
 
-            Console.WriteLine("Opening socket");
+            EmitDebug("Opening socket");
             Socket = new ClientWebSocket();
 
             if (CTS != null) CTS.Dispose();
@@ -99,7 +82,7 @@ namespace CBot
             await Socket.ConnectAsync(Target, CTS.Token);
             // Add a receiver method that listens for incoming data from the socket
             await Task.Factory.StartNew(Receiver, CTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).ConfigureAwait(false);
-            Console.WriteLine("Receiver running.");
+            EmitDebug("Receiver running.");
 
         }
 
@@ -108,7 +91,7 @@ namespace CBot
             if (Socket is null) return;
             if(Socket.State == WebSocketState.Open)
             {
-                Console.WriteLine("Closing socket...");
+                EmitDebug("Closing socket...");
                 CTS.CancelAfter(2000);
                 await Socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CTS.Token);
                 // await Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CTS.Token);
@@ -118,7 +101,8 @@ namespace CBot
             Socket = null;
             CTS.Dispose();
             CTS = null;
-            Console.WriteLine("Socket closed");
+            EmitDebug("Socket closed gracefully");
+            EmitClose();
 
         }
 
@@ -133,27 +117,28 @@ namespace CBot
             {
                 while (!CTS.Token.IsCancellationRequested)
                 {
-                    Console.WriteLine("Awaiting message from socket");
+                    EmitDebug("Awaiting message from socket");
                     StreamIn = new MemoryStream(BufferSize);
                     do
                     {
                         Result = await Socket.ReceiveAsync(buffer, CTS.Token);
                         if (Result.MessageType != WebSocketMessageType.Close) StreamIn.Write(buffer, 0, Result.Count);
                     } while (!Result.EndOfMessage);
-                    Console.WriteLine("Received");
+                    EmitDebug("Received message from socket, sending to handler");
                     if (Result.MessageType == WebSocketMessageType.Close)
                     {
-                        Console.WriteLine($"Received close from WS\n{Result.CloseStatus}:{Result.CloseStatusDescription}");
-                        HandleReceive(StreamIn);
+                        EmitDebug($"Received close from WS\n{Result.CloseStatus}:{Result.CloseStatusDescription}");
+                        await Disconnect();
                         break;
                     }
                     Result = null;
                     StreamIn.Position = 0;
                     HandleReceive(StreamIn);
                 }
-            } catch(TaskCanceledException)
+            } catch(TaskCanceledException Ex)
             {
-                Console.WriteLine("Receiver failed");
+                EmitDebug($"Receiver failed:\n{Ex.Message}");
+                EmitError(Ex);
             } finally
             {
                 StreamIn?.Dispose();
@@ -165,20 +150,41 @@ namespace CBot
         {
             byte[] Buffer = new byte[incoming.Length];
             incoming.Read(Buffer);
-            string _Message = Encoding.UTF8.GetString(Buffer);
+            string Message = Encoding.UTF8.GetString(Buffer);
 
-            SocketMessage msg = new SocketMessage(_Message);
-
-            OnSocketEvent(msg);
+            OnMessage(Message);
 
         }
+        #region Events
 
-        public event EventHandler<SocketMessage> SocketEvent;
-        protected virtual void OnSocketEvent(SocketMessage args)
+        public event EventHandler<string> SocketEvent;
+        protected virtual void OnMessage(string args)
         {
-            EventHandler<SocketMessage> handler = SocketEvent;
-            handler?.Invoke(this, args);
+            SocketEvent?.Invoke(this, args);
         }
+
+        public event EventHandler<string> Debug;
+
+        public virtual void EmitDebug(string Message)
+        {
+            Debug?.Invoke(this, Message);
+        }
+
+        public event EventHandler<Exception> Error;
+
+        public virtual void EmitError(Exception Ex)
+        {
+            Error?.Invoke(this, Ex);
+        }
+
+        public event EventHandler OnClose;
+
+        public virtual void EmitClose()
+        {
+            OnClose?.Invoke(this, null);
+        }
+
+        #endregion Events
 
     }
 }
