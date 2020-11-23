@@ -44,7 +44,7 @@ namespace CBot
 
         public override string ToString()
         {
-            return "op: " + op + "\ns: " + s + "\nt: " + t + "\nd: " + d + "\nRaw: " + Raw;
+            return $"==============\nop: {op}\ns: {s}\nt: {t}\nd: {d}\nRAW: {Raw}\n==============";
         }
 
     }
@@ -78,6 +78,8 @@ namespace CBot
         private SocketManager WS = null;
 
         private int HeartbeatInterval;
+        private int SequenceNum;
+        private int MissedHeartbeats = 0;
         private CancellationTokenSource HeartbeatCTS;
 
         public Client(BotConfig config)
@@ -109,6 +111,8 @@ namespace CBot
             DiscordPacket Packet = JsonSerializer.Deserialize<DiscordPacket>(e.Raw);
             Packet.Raw = e.Raw;
             Console.WriteLine(Packet);
+            if (Packet.s.HasValue) SequenceNum = (int)Packet.s;
+            Console.WriteLine($"SequenceNum: {SequenceNum}");
 
             ResolvePacketType(Packet);
 
@@ -120,31 +124,31 @@ namespace CBot
             switch(Packet.op)
             {
                 case (int)PacketType.Dispatch:
-
+                    ResolveDiscordEvent(Packet);
                     break;
                 case (int)PacketType.Heartbeat:
-
+                    // TODO: HeartBeatRequested(Packet); //Discord requested heartbeat
                     break;
                 case (int)PacketType.Identify:
-
+                    // Sent to discord, shouldn't need to do anything here
                     break;
                 case (int)PacketType.PresenceUpdate:
-
+                    // Sent to discord, shouldn't need to do anything here
                     break;
                 case (int)PacketType.VoiceStateUpdate:
-
+                    // Sent to discord, shouldn't need to do anything here
                     break;
                 case (int)PacketType.Resume:
-
+                    // Sent to discord, shouldn't need to do anything here
                     break;
                 case (int)PacketType.Reconnect:
-
+                    // TODO: Reconnect(Packet);
                     break;
                 case (int)PacketType.RequestGuildMembers:
-
+                    // Sent to discord, shouldn't need to do anything here
                     break;
                 case (int)PacketType.InvalidSession:
-
+                    // TODO: Reconnect(Packet);
                     break;
                 case (int)PacketType.Hello:
                     PacketHello(Packet);
@@ -154,6 +158,11 @@ namespace CBot
                     break;
             }
 
+        }
+
+        private async void ResolveDiscordEvent(DiscordPacket Packet)
+        {
+            Console.WriteLine($"New event!\n{Packet.t}");
         }
 
         private async void PacketHello(DiscordPacket Packet)
@@ -167,7 +176,16 @@ namespace CBot
             HeartbeatCTS = new CancellationTokenSource();
 
             Console.WriteLine("Starting heartbeat");
-            await Task.Factory.StartNew(this.Heartbeat, HeartbeatCTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            await Task.Factory.StartNew(this.Heartbeat, HeartbeatCTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).ConfigureAwait(false);
+            await Identify();
+        }
+
+        private async Task Identify()
+        {
+            Console.WriteLine("Sending identify");
+            Identify Packet = new Identify(Config.Token, Config.IntentsInteger);
+            string Serialised = JsonSerializer.Serialize(Packet);
+            await WS.Send(Serialised).ConfigureAwait(false);
         }
 
         private async Task Heartbeat()
@@ -176,15 +194,17 @@ namespace CBot
             while(!Token.IsCancellationRequested)
             {
                 Console.WriteLine("Sending heartbeat");
-                string Message = JsonSerializer.Serialize(new Heartbeat());
-                Console.WriteLine(Message);
-                await WS.Send(Message);
+                Heartbeat HB = SequenceNum > -1 ? new Heartbeat(SequenceNum) : new Heartbeat() ;
+                string Message = JsonSerializer.Serialize(HB);
+                await WS.Send(Message).ConfigureAwait(false);
+                MissedHeartbeats++;
                 await Task.Delay(HeartbeatInterval, Token);
             }
         }
 
         private void HeartbeatAck(DiscordPacket Packet)
         {
+            MissedHeartbeats--;
             Console.WriteLine("Heartbeat acknowledged");
         }
 
@@ -192,7 +212,6 @@ namespace CBot
         {
             if (token != null && Config.Token is null) Config.Token = token;
             else if (token is null && Config.Token is null) throw new MissingTokenException("Token must be provided either in the login method or config");
-            else if (token is null) token = Config.Token;
 
             Uri Path = new PathBuilder(Config.WSURI)
                 .AddQuery("v", Config.GWVersion)
