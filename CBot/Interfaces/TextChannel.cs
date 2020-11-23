@@ -32,5 +32,13 @@ namespace CBot.Interfaces
 
         Task<MessageReaction> FetchReactions(long MessageId, MessageReaction Reaction, ReactionQueryOptions Options = null);
 
+        Task<ITextChannel> Follow(ITextChannel Target); // Add a crosspost webhook to the Target channel
+
+        Task<Dictionary<long, Message>> FetchPinnedMessages();
+
+        Task<Message> PinMessage(long Id);
+
+        Task<Message> UnpinMessage(long Id);
+
     }
 }
