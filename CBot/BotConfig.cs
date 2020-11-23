@@ -103,6 +103,12 @@ namespace CBot
             get { return _intents.Strings(); }
         }
 
+        public int IntentsInteger
+        {
+            get { return _intents.Integer; }
+            private set { }
+        }
+
         public string WSURI { get; set; }
 
         public string GWVersion { get; set; }
