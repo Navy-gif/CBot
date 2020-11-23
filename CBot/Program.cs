@@ -28,9 +28,9 @@ namespace CBot
             Client Client = new Client(config);
             await Client.Login();
             
-            Thread.Sleep(10000);
-            await Client.Logout();
-            Thread.Sleep(10000);
+            Thread.Sleep(-1);
+            //await Client.Logout();
+            //Thread.Sleep(10000);
 
         }
 
