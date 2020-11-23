@@ -1,8 +1,8 @@
 ﻿using CBot.DiscordPayloads;
+using CBot.Structures;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,7 +65,7 @@ namespace CBot
         HeartbeatAck = 11       // Receive
     }
 
-    class Client
+    class BaseClient
     {
 
         private BotConfig config;
@@ -82,34 +82,29 @@ namespace CBot
         private int MissedHeartbeats = 0;
         private CancellationTokenSource HeartbeatCTS;
 
-        public Client(BotConfig config)
+        private Dictionary<string, Func<DiscordPacket, bool>> Events = new Dictionary<string, Func<DiscordPacket, bool>>();
+
+        public BaseClient(BotConfig config)
         {
 
             Config = config;
             Console.WriteLine(Config);
-            WS = new SocketManager(this);
+            WS = new SocketManager();
             WS.SocketEvent += OnSocketEvent;
+            WS.Debug += (source, Text) => { Console.WriteLine(Text); };
 
-            //JsonSerializerOptions JOptions = new JsonSerializerOptions
-            //{
-            //    MaxDepth = 5
-            //};
-            //DiscordPacket Packet = JsonSerializer.Deserialize<DiscordPacket>("{\"t\":null,\"s\":null,\"op\":10,\"d\": null}", JOptions);
-            //Console.WriteLine(Packet);
-            //object heartbeat = null;
-            //foreach(string key in Packet.d.Keys)
-            //{
-            //    Packet.d.TryGetValue(key, out object value);
-            //    Console.WriteLine(key + ": " + value);
-            //}
-            //Console.WriteLine(heartbeat);
+            #region Register events
+            Events.Add("MESSAGE_CREATE", this.OnMessage);
+            Events.Add("GUILD_CREATE", this.OnGuildCreate);
+            #endregion Register events
         }
 
-        private void OnSocketEvent(object sender, SocketMessage e)
+        #region Websocket stuff
+        internal void OnSocketEvent(object Sender, string Message)
         {
             Console.WriteLine("Event came through to client:");
-            DiscordPacket Packet = JsonSerializer.Deserialize<DiscordPacket>(e.Raw);
-            Packet.Raw = e.Raw;
+            DiscordPacket Packet = JsonSerializer.Deserialize<DiscordPacket>(Message);
+            Packet.Raw = Message;
             Console.WriteLine(Packet);
             if (Packet.s.HasValue) SequenceNum = (int)Packet.s;
             Console.WriteLine($"SequenceNum: {SequenceNum}");
@@ -160,9 +155,17 @@ namespace CBot
 
         }
 
-        private async void ResolveDiscordEvent(DiscordPacket Packet)
+        private void ResolveDiscordEvent(DiscordPacket Packet)
         {
-            Console.WriteLine($"New event!\n{Packet.t}");
+            Console.WriteLine($"==== New event! ====\n{Packet.t}");
+            Events.TryGetValue(Packet.t, out Func<DiscordPacket, bool> Func);
+            Console.WriteLine(Func);
+            if (Func is null)
+            {
+                Console.WriteLine("Func is null");
+                return;
+            }
+            _ = Func(Packet);
         }
 
         private async void PacketHello(DiscordPacket Packet)
@@ -184,7 +187,7 @@ namespace CBot
         {
             Console.WriteLine("Sending identify");
             Identify Packet = new Identify(Config.Token, Config.IntentsInteger);
-            string Serialised = JsonSerializer.Serialize(Packet);
+            string Serialised = JsonSerializer.Serialize(Packet, new JsonSerializerOptions { IgnoreNullValues = true });
             await WS.Send(Serialised).ConfigureAwait(false);
         }
 
@@ -208,6 +211,9 @@ namespace CBot
             Console.WriteLine("Heartbeat acknowledged");
         }
 
+        #endregion Websocket stuff
+
+        #region Connect/Disconnect to socket
         public async Task Login(string token = null)
         {
             if (token != null && Config.Token is null) Config.Token = token;
@@ -227,6 +233,46 @@ namespace CBot
         {
             await WS.Disconnect();
         }
+        #endregion Connect/Disconnect to socket
+
+        #region Events
+
+        public event EventHandler Ready;
+
+        public virtual void OnReady()
+        {
+            EventHandler Handler = Ready;
+            Ready?.Invoke(this, null);
+        }
+
+        public event EventHandler<Message> MessageCreate;
+
+        public virtual bool OnMessage(DiscordPacket Packet)
+        {
+            MessageCreate?.Invoke(this, new Message(this, Packet.d));
+            return true;
+        }
+
+        public event EventHandler<Guild> GuildCreate;
+
+        public virtual bool OnGuildCreate(DiscordPacket Packet)
+        {
+            Console.WriteLine("Trying to create guild");
+            Guild Guild = null;
+            try
+            {
+                Guild = new Guild(this, Packet.d);
+                Console.WriteLine("Created guild");
+
+            } catch (Exception ex)
+            {
+                Console.WriteLine("Guild create failed");
+                Console.WriteLine(ex.Message);
+            }
+            GuildCreate?.Invoke(this, Guild);
+            return true;
+        }
+        #endregion Events
 
     }
 
