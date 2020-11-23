@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
+using System.Text;
 
 namespace CBot
 {
@@ -34,9 +35,48 @@ namespace CBot
         private CancellationTokenSource CTS = null;
         private int BufferSize { get; set; } = 4096;
 
+        private SemaphoreSlim SendBusy;
+
         public SocketManager(Client client)
         {
             Client = client;
+            SendBusy = new SemaphoreSlim(1);
+        }
+
+        public async Task Send(string Message)
+        {
+
+            Console.WriteLine("Send pre-check");
+            if (Socket is null) return;
+            if (Socket.State != WebSocketState.Open && Socket.State != WebSocketState.CloseReceived) return;
+            Console.WriteLine("Pre-check success\nAwaiting and setting semaphore");
+
+            await SendBusy.WaitAsync();
+            byte[] Bytes = Encoding.UTF8.GetBytes(Message);
+
+            try
+            {
+                Console.WriteLine($"Starting send of message: \n{Message}");
+                int len = Bytes.Length;
+                int Segments = len / BufferSize;
+                if (len % BufferSize != 0) Segments++;
+
+                for(int i = 0; i < Segments; i++)
+                {
+                    int Start = BufferSize * i;
+                    int SegmentLength = Math.Min(BufferSize, len - Start);
+
+                    await Socket.SendAsync(new ArraySegment<byte>(Bytes, Start, SegmentLength), WebSocketMessageType.Text, i == Segments - 1, CancellationToken.None);
+                }
+
+            } catch
+            {
+
+            } finally
+            {
+                Console.WriteLine("Message sent, releasing semaphore");
+                SendBusy.Release();
+            }
         }
         
         public async Task Connect(Uri Target)
@@ -50,13 +90,14 @@ namespace CBot
 
             Console.WriteLine("Opening socket");
             Socket = new ClientWebSocket();
+
             if (CTS != null) CTS.Dispose();
             CTS = new CancellationTokenSource();
 
             await Socket.ConnectAsync(Target, CTS.Token);
             // Add a receiver method that listens for incoming data from the socket
-            Console.WriteLine(CTS.Token);
-            await Task.Factory.StartNew(Receiver, CTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Task.Factory.StartNew(Receiver, CTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Console.WriteLine("Receiver running.");
 
         }
 
@@ -115,7 +156,7 @@ namespace CBot
         {
             byte[] Buffer = new byte[incoming.Length];
             incoming.Read(Buffer);
-            string _Message = System.Text.Encoding.UTF8.GetString(Buffer);
+            string _Message = Encoding.UTF8.GetString(Buffer);
 
             SocketMessage msg = new SocketMessage(_Message);
 
