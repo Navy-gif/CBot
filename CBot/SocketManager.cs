@@ -60,9 +60,11 @@ namespace CBot
                 int len = Bytes.Length;
                 int Segments = len / BufferSize;
                 if (len % BufferSize != 0) Segments++;
+                Console.WriteLine($"{Segments} segments to send");
 
                 for(int i = 0; i < Segments; i++)
                 {
+                    Console.WriteLine($"Sending segment {i+1} of {Segments}");
                     int Start = BufferSize * i;
                     int SegmentLength = Math.Min(BufferSize, len - Start);
 
@@ -71,7 +73,7 @@ namespace CBot
 
             } catch
             {
-
+                Console.WriteLine("Some error while sending?");
             } finally
             {
                 Console.WriteLine("Message sent, releasing semaphore");
@@ -96,7 +98,7 @@ namespace CBot
 
             await Socket.ConnectAsync(Target, CTS.Token);
             // Add a receiver method that listens for incoming data from the socket
-            Task.Factory.StartNew(Receiver, CTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            await Task.Factory.StartNew(Receiver, CTS.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).ConfigureAwait(false);
             Console.WriteLine("Receiver running.");
 
         }
@@ -124,27 +126,34 @@ namespace CBot
         {
 
             MemoryStream StreamIn = null;
-            WebSocketReceiveResult Result = null;
+            WebSocketReceiveResult Result;
             byte[] buffer = new byte[BufferSize];
 
             try
             {
                 while (!CTS.Token.IsCancellationRequested)
                 {
+                    Console.WriteLine("Awaiting message from socket");
                     StreamIn = new MemoryStream(BufferSize);
                     do
                     {
                         Result = await Socket.ReceiveAsync(buffer, CTS.Token);
                         if (Result.MessageType != WebSocketMessageType.Close) StreamIn.Write(buffer, 0, Result.Count);
                     } while (!Result.EndOfMessage);
-
-                    if (Result.MessageType == WebSocketMessageType.Close) break;
+                    Console.WriteLine("Received");
+                    if (Result.MessageType == WebSocketMessageType.Close)
+                    {
+                        Console.WriteLine($"Received close from WS\n{Result.CloseStatus}:{Result.CloseStatusDescription}");
+                        HandleReceive(StreamIn);
+                        break;
+                    }
+                    Result = null;
                     StreamIn.Position = 0;
                     HandleReceive(StreamIn);
                 }
             } catch(TaskCanceledException)
             {
-
+                Console.WriteLine("Receiver failed");
             } finally
             {
                 StreamIn?.Dispose();
