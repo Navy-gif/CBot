@@ -10,6 +10,7 @@ namespace CBot.Structures
 
         public DiscordBaseStructure(BaseClient Client, JsonElement Id)
         {
+            Console.WriteLine("Yo");
             this.Id = long.Parse(Id.GetString());
             this.Client = Client;
             Console.WriteLine($"Creating DiscordStructure with ID: {this.Id}");
