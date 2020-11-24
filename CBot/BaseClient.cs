@@ -1,4 +1,5 @@
-﻿using CBot.DiscordPayloads;
+﻿using CBot.Caches;
+using CBot.DiscordPayloads;
 using CBot.Structures;
 using System;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Text.Json.JsonElement;
 
 namespace CBot
 {
@@ -81,6 +83,15 @@ namespace CBot
         private int SequenceNum;
         private int MissedHeartbeats = 0;
         private CancellationTokenSource HeartbeatCTS;
+        private string SessionId;
+
+        public bool IsReady { get; internal set; } = false;
+
+        public UserCache Users { get; internal set; }
+
+        public GuildCache Guilds { get; internal set; }
+
+        public User User { get; internal set; }
 
         private Dictionary<string, Func<DiscordPacket, bool>> Events = new Dictionary<string, Func<DiscordPacket, bool>>();
 
@@ -93,11 +104,19 @@ namespace CBot
             WS.SocketEvent += OnSocketEvent;
             WS.Debug += (source, Text) => { Console.WriteLine(Text); };
 
+            Users = new UserCache(this);
+            Guilds = new GuildCache(this);
+
             #region Register events
+            Events.Add("READY", this.OnReady);
             Events.Add("MESSAGE_CREATE", this.OnMessage);
             Events.Add("GUILD_CREATE", this.OnGuildCreate);
             #endregion Register events
         }
+
+        #region Client methods
+
+        #endregion Client methods
 
         #region Websocket stuff
         internal void OnSocketEvent(object Sender, string Message)
@@ -159,7 +178,6 @@ namespace CBot
         {
             Console.WriteLine($"==== New event! ====\n{Packet.t}");
             Events.TryGetValue(Packet.t, out Func<DiscordPacket, bool> Func);
-            Console.WriteLine(Func);
             if (Func is null)
             {
                 Console.WriteLine("Func is null");
@@ -239,10 +257,23 @@ namespace CBot
 
         public event EventHandler Ready;
 
-        public virtual void OnReady()
+        public virtual bool OnReady(DiscordPacket Packet)
         {
-            EventHandler Handler = Ready;
+            //TODO: Initialise guilds
+            Dictionary<string, JsonElement> Data = Packet.d;
+            User = new ClientUser(this, Data["user"]);
+
+            ArrayEnumerator Guilds = Data["guilds"].EnumerateArray();
+            foreach(JsonElement RawGuild in Guilds)
+            {
+                this.Guilds.Create(RawGuild);
+            }
+
+            SessionId = Data["session_id"].GetString();
+
+            IsReady = true;
             Ready?.Invoke(this, null);
+            return true;
         }
 
         public event EventHandler<Message> MessageCreate;
@@ -257,21 +288,39 @@ namespace CBot
 
         public virtual bool OnGuildCreate(DiscordPacket Packet)
         {
-            Console.WriteLine("Trying to create guild");
-            Guild Guild = null;
-            try
-            {
-                Guild = new Guild(this, Packet.d);
-                Console.WriteLine("Created guild");
 
-            } catch (Exception ex)
+            Guild Guild = null;
+
+            if (long.TryParse(Packet.d["id"].GetString(), out long Id))
             {
-                Console.WriteLine("Guild create failed");
-                Console.WriteLine(ex.Message);
-            }
+                if(Guilds.TryGet(Id, out Guild))
+                {
+                    Console.WriteLine($"Found guild obj for {Id}, patching");
+                    Guild.Patch(Packet.d);
+                }
+                else
+                {
+                    Console.WriteLine($"Creating new guild for {Id}");
+                    Guilds.Create();
+                }
+
+            } 
+            
+            //Guild Guild = null;
+            //try
+            //{
+            //    Guild = new Guild(this, Packet.d);
+            //    Console.WriteLine("Created guild");
+
+            //} catch (Exception ex)
+            //{
+            //    Console.WriteLine("Guild create failed");
+            //    Console.WriteLine(ex.Message);
+            //}
             GuildCreate?.Invoke(this, Guild);
             return true;
         }
+
         #endregion Events
 
     }
