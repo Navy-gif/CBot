@@ -1,5 +1,6 @@
 ﻿using CBot.RESTOptions;
 using CBot.Structures;
+using CBot.Util;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -9,6 +10,7 @@ namespace CBot.Interfaces
 {
     interface IGuildChannel
     {
+        ChannelType Type { get; set; }
 
         Task<IGuildChannel> Edit(ChannelEditOptions Options);
 
