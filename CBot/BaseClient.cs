@@ -103,6 +103,7 @@ namespace CBot
             WS = new SocketManager();
             WS.SocketEvent += OnSocketEvent;
             WS.Debug += (source, Text) => { Console.WriteLine(Text); };
+            WS.OnClose += WS_OnClose;
 
             Users = new UserCache(this);
             Guilds = new GuildCache(this);
@@ -112,6 +113,11 @@ namespace CBot
             Events.Add("MESSAGE_CREATE", this.OnMessage);
             Events.Add("GUILD_CREATE", this.OnGuildCreate);
             #endregion Register events
+        }
+
+        private void WS_OnClose(object sender, EventArgs e)
+        {
+            HeartbeatCTS.Cancel();
         }
 
         #region Client methods
@@ -266,7 +272,7 @@ namespace CBot
             ArrayEnumerator Guilds = Data["guilds"].EnumerateArray();
             foreach(JsonElement RawGuild in Guilds)
             {
-                this.Guilds.Create(RawGuild);
+                this.Guilds.CreateEntry(RawGuild);
             }
 
             SessionId = Data["session_id"].GetString();
@@ -296,29 +302,26 @@ namespace CBot
                 if(Guilds.TryGet(Id, out Guild))
                 {
                     Console.WriteLine($"Found guild obj for {Id}, patching");
-                    Guild.Patch(Packet.d);
+                    try
+                    {
+                        Guild.Patch(Packet.d);
+                    }catch(Exception Ex)
+                    {
+                        Console.WriteLine($"Exception during patch: {Ex.Message}\n{Ex.StackTrace}");
+                    }
                 }
                 else
                 {
                     Console.WriteLine($"Creating new guild for {Id}");
-                    Guilds.Create();
+                    Guilds.CreateEntry(Packet.d);
                 }
 
-            } 
-            
-            //Guild Guild = null;
-            //try
-            //{
-            //    Guild = new Guild(this, Packet.d);
-            //    Console.WriteLine("Created guild");
+            }
 
-            //} catch (Exception ex)
-            //{
-            //    Console.WriteLine("Guild create failed");
-            //    Console.WriteLine(ex.Message);
-            //}
+            Console.WriteLine(Guild);
             GuildCreate?.Invoke(this, Guild);
             return true;
+
         }
 
         #endregion Events
