@@ -41,7 +41,9 @@ namespace CBot.Caches
             return Cache.TryGetValue(Key, out Result);
         }
 
-        public abstract TVal Create(JsonElement Data);
+        public abstract TVal Create(RestOptions Options);
+
+        public abstract TVal CreateEntry(JsonElement Data);
 
     }
 }

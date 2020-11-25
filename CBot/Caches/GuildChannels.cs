@@ -11,15 +11,23 @@ namespace CBot.Caches
 {
     class GuildChannels : BaseCache<long, IGuildChannel>
     {
-
+        Guild Guild;
         public GuildChannels(BaseClient Client, Guild Guild) : base(Client)
         {
-
+            this.Guild = Guild;
         }
 
-        public override void Create(JsonElement Data)
+        public override IGuildChannel Create(RestOptions Options)
         {
             throw new NotImplementedException();
+        }
+
+        public override IGuildChannel CreateEntry(JsonElement Data)
+        {
+            long Id = long.Parse(Data.GetProperty("id").GetString());
+            GuildTextChannel Channel = new GuildTextChannel(Client, Guild, Data);
+            Cache.Add(Id, Channel);
+            return Channel;
         }
 
         public override BaseCache<long, IGuildChannel> Fetch(CacheFetchOptions Options)

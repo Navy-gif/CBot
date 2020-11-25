@@ -15,7 +15,12 @@ namespace CBot.Caches
 
         }
 
-        public override void Create(JsonElement Data)
+        public override VoiceState Create(RestOptions Data)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override VoiceState CreateEntry(JsonElement Data)
         {
             throw new NotImplementedException();
         }

@@ -16,24 +16,25 @@ namespace CBot.Caches
 
         }
 
-        public override Guild Create(JsonElement Data)
+        public override Guild Create(RestOptions Options)
         {
-
-            long Id = long.Parse(Data.GetProperty("id").GetString());
-            Guild Guild = new Guild(Client, Data);
-            Cache.Add(Id, Guild);
-            return Guild;
-
+            throw new NotImplementedException();
         }
 
-        public Guild Create(Dictionary<string, JsonElement> Data)
+        public Guild CreateEntry(Dictionary<string, JsonElement> Data)
         {
-
             long Id = long.Parse(Data["id"].GetString());
             Guild Guild = new Guild(Client, Data);
             Cache.Add(Id, Guild);
             return Guild;
+        }
 
+        public override Guild CreateEntry(JsonElement Data)
+        {
+            long Id = long.Parse(Data.GetProperty("id").GetString());
+            Guild Guild = new Guild(Client, Data);
+            Cache.Add(Id, Guild);
+            return Guild;
         }
 
         public override BaseCache<long, Guild> Fetch(CacheFetchOptions Options)

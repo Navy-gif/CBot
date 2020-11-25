@@ -15,7 +15,12 @@ namespace CBot.Caches
 
         }
 
-        public override void Create(JsonElement Data)
+        public override Presence Create(RestOptions Data)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Presence CreateEntry(JsonElement Data)
         {
             throw new NotImplementedException();
         }
