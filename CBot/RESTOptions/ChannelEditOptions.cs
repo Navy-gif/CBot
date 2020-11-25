@@ -4,7 +4,7 @@ using System.Text;
 
 namespace CBot.RESTOptions
 {
-    class ChannelEditOptions
+    class ChannelEditOptions : RestOptions
     {
     }
 }

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace CBot.RESTOptions
 {
-    class CacheFetchOptions
+    class CacheFetchOptions : RestOptions
     {
     }
 }
