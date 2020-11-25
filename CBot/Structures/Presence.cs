@@ -11,5 +11,10 @@ namespace CBot.Structures
         {
 
         }
+
+        public override void Patch(Dictionary<string, JsonElement> Data)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

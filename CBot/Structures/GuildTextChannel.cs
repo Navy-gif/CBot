@@ -1,46 +1,52 @@
-﻿using CBot.Interfaces;
-using CBot.RESTOptions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using CBot.Interfaces;
+using CBot.RESTOptions;
+using CBot.Util;
 
 namespace CBot.Structures
 {
-    class User : DiscordBaseStructure, ITextBasedChannel
+    class GuildTextChannel : AbstractGuildChannel, IGuildChannel, ITextBasedChannel
     {
 
-        public string Username { get; internal set; }
+        public string Topic { get; internal set; }
 
-        public string Discriminator { get; internal set; }
+        public bool Nsfw { get; internal set; } = false;
 
-        public string Tag { 
-            get
-            {
-                return $"{Username}#{Discriminator}";
-            }
-            internal set
-            {
+        public int RateLimit { get; internal set; } = 0;
 
-            }
+        public DateTime LastPinTime { get; internal set; }
+
+        public long LastMessageId { get; set; }
+
+        public GuildTextChannel(BaseClient Client, Guild Guild, JsonElement Data) : base(Client, Data.GetProperty("id"))
+        {
+            this.Guild = Guild;
+            Patch(Data);
         }
 
-        public string Avatar { get; internal set; }
-
-        public bool Bot { get; internal set; }
-
-        public bool System { get; internal set; }
-
-        public int RawFlags { get; internal set; }
-
-        public User(BaseClient Client, Dictionary<string, JsonElement> Data) : base(Client, Data["id"])
+        public override void Patch(JsonElement Data)
         {
 
-        }
+            base.Patch(Data);
 
-        public User(BaseClient Client, JsonElement Data) : base(Client, Data.GetProperty("id"))
-        {
+            if(Data.TryGetProperty("last_message_id", out JsonElement lmsgid))
+                this.LastMessageId = long.Parse(lmsgid.GetString());
+
+            if(Data.TryGetProperty("topic", out JsonElement topic))
+                this.Topic = topic.GetString();
+
+            if(Data.TryGetProperty("nsfw", out JsonElement nsfw))
+                this.Nsfw = nsfw.GetBoolean();
+
+            if(Data.TryGetProperty("rate_limit_per_user", out JsonElement rl))
+                this.RateLimit = rl.GetInt32();
+
+            if (Data.TryGetProperty("last_pin_timestamp", out JsonElement date))
+                this.LastPinTime = date.GetDateTime();
 
         }
 
@@ -48,8 +54,6 @@ namespace CBot.Structures
         {
             throw new NotImplementedException();
         }
-
-        #region TextChannel methods
 
         public Task<MessageReaction> AddReaction(long MessageId, MessageReaction Reaction)
         {
@@ -71,6 +75,11 @@ namespace CBot.Structures
             throw new NotImplementedException();
         }
 
+        public Task<Invite> CreateInvite(InviteOptions Options)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<IChannel> Delete()
         {
             throw new NotImplementedException();
@@ -82,6 +91,16 @@ namespace CBot.Structures
         }
 
         public Task<Message> DeleteMessage(Message Message)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IGuildChannel> DeletePermissionOverwrite(PermissionOverwrite Overwrite)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IGuildChannel> DeletePermissionOverwrite(long Id)
         {
             throw new NotImplementedException();
         }
@@ -106,12 +125,22 @@ namespace CBot.Structures
             throw new NotImplementedException();
         }
 
+        public Task<IGuildChannel> Edit(ChannelEditOptions Options)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<Message> EditMessage(long Id, string Text = null, MessageOptions Options = null)
         {
             throw new NotImplementedException();
         }
 
         public Task<Message> EditMessage(Message Message, string Text = null, MessageOptions Options = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Dictionary<string, Invite>> FetchInvites()
         {
             throw new NotImplementedException();
         }
@@ -141,6 +170,11 @@ namespace CBot.Structures
             throw new NotImplementedException();
         }
 
+        public Task<IGuildChannel> OverwritePermissions(PermissionOverwrite Overwrite)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<Message> PinMessage(long Id)
         {
             throw new NotImplementedException();
@@ -165,8 +199,5 @@ namespace CBot.Structures
         {
             throw new NotImplementedException();
         }
-
-        #endregion TextChannel methods
-
     }
 }

@@ -7,9 +7,14 @@ namespace CBot.Structures
 {
     class VoiceChannel : DiscordBaseStructure
     {
-        VoiceChannel(BaseClient Client, Dictionary<string, JsonElement> Data) : base(Client, Data["id"])
+        public VoiceChannel(BaseClient Client, Dictionary<string, JsonElement> Data) : base(Client, Data["id"])
         {
 
+        }
+
+        public override void Patch(Dictionary<string, JsonElement> Data)
+        {
+            throw new NotImplementedException();
         }
     }
 }

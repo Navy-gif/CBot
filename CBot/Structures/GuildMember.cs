@@ -25,28 +25,12 @@ namespace CBot.Structures
         public GuildMember(BaseClient Client, Dictionary<string, JsonElement> Data) : base (Client, Data["id"])
         {
 
-            Data.TryGetValue("nick", out JsonElement nick);
-            Nickname = nick.GetString();
+            Patch(Data);
 
-            Data.TryGetValue("joined_at", out JsonElement joined);
-            JoinedAt = joined.GetDateTime();
+        }
 
-            Data.TryGetValue("premium_since", out JsonElement booster);
-            StartedBoosting = booster.GetDateTime();
-
-            Data.TryGetValue("roles", out JsonElement roles);
-            Roles = new MemberRoles(Client, this, roles);
-
-            Data.TryGetValue("user", out JsonElement user);
-            ResolveUser(user);
-
-            Data.TryGetValue("deaf", out JsonElement deaf);
-            Deaf = deaf.GetBoolean();
-
-            Data.TryGetValue("mute", out JsonElement mute);
-            Mute = mute.GetBoolean();
-
-
+        public GuildMember(BaseClient Client, JsonElement Data) : base (Client, Data.GetProperty("id"))
+        {
 
         }
 
@@ -58,5 +42,30 @@ namespace CBot.Structures
             else User = new User(Client, UserData);
         }
 
+        public override void Patch(Dictionary<string, JsonElement> Data)
+        {
+
+            Data.TryGetValue("nick", out JsonElement nick);
+            Nickname = nick.GetString();
+
+            if (Data.TryGetValue("joined_at", out JsonElement joined))
+                JoinedAt = joined.GetDateTime();
+
+            if (Data.TryGetValue("premium_since", out JsonElement booster))
+                StartedBoosting = booster.GetDateTime();
+
+            Data.TryGetValue("roles", out JsonElement roles);
+            Roles = new MemberRoles(Client, this, roles);
+
+            if (Data.TryGetValue("user", out JsonElement user))
+                ResolveUser(user);
+
+            Data.TryGetValue("deaf", out JsonElement deaf);
+            Deaf = deaf.GetBoolean();
+
+            Data.TryGetValue("mute", out JsonElement mute);
+            Mute = mute.GetBoolean();
+
+        }
     }
 }
