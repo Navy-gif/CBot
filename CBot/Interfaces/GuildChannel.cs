@@ -10,7 +10,9 @@ namespace CBot.Interfaces
 {
     interface IGuildChannel
     {
-        ChannelType Type { get; set; }
+        //ChannelType Type { get; set; }
+
+        //string Name { get; set; }
 
         Task<IGuildChannel> Edit(ChannelEditOptions Options);
 
