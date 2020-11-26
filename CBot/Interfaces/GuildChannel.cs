@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CBot.Interfaces
 {
-    interface IGuildChannel
+    interface IGuildChannel : IChannel
     {
         //ChannelType Type { get; set; }
 
