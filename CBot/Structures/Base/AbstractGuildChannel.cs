@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using static System.Text.Json.JsonElement;
 
-namespace CBot.Structures
+namespace CBot.Structures.Base
 {
     class AbstractGuildChannel : DiscordBaseStructure, IGuildChannel
     {
@@ -30,13 +30,14 @@ namespace CBot.Structures
         }
         public string Name { get; internal set; }
 
-        public IGuildChannel ParentChannel { get; internal set; }
+        public AbstractGuildChannel ParentChannel { get { return Guild.Channels.Resolve(ParentChannelId); } internal set { } }
 
         public long ParentChannelId { get; internal set; }
 
-        public AbstractGuildChannel(BaseClient Client, JsonElement Data) : base(Client, Data)
+        public AbstractGuildChannel(BaseClient Client, Guild Guild, JsonElement Data) : base(Client, Data)
         {
             _PermissionOverwrites = new List<PermissionOverwrite>();
+            this.Guild = Guild;
         }
 
         public virtual void Patch(JsonElement Data)
@@ -53,15 +54,12 @@ namespace CBot.Structures
             if (Data.TryGetProperty("position", out JsonElement pos))
                 this.Position = pos.GetInt32();
 
-            //TODO: Parse permissions
             JsonElement Overwrites = Data.GetProperty("permission_overwrites");
             ArrayEnumerator OverwriteEnumerator = Overwrites.EnumerateArray();
             foreach(JsonElement Overwrite in OverwriteEnumerator)
             {
                 _PermissionOverwrites.Add(new PermissionOverwrite(Client, Overwrite));
             }
-
-            //TODO: Figure out what to do about parent channel
 
         }
 
@@ -70,22 +68,22 @@ namespace CBot.Structures
             throw new NotImplementedException();
         }
 
-        public Task<IGuildChannel> Edit(ChannelEditOptions Options)
+        public Task<AbstractGuildChannel> Edit(ChannelEditOptions Options)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IGuildChannel> OverwritePermissions(PermissionOverwrite Overwrite)
+        public Task<AbstractGuildChannel> OverwritePermissions(PermissionOverwrite Overwrite)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IGuildChannel> DeletePermissionOverwrite(PermissionOverwrite Overwrite)
+        public Task<AbstractGuildChannel> DeletePermissionOverwrite(PermissionOverwrite Overwrite)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IGuildChannel> DeletePermissionOverwrite(long Id)
+        public Task<AbstractGuildChannel> DeletePermissionOverwrite(long Id)
         {
             throw new NotImplementedException();
         }
@@ -96,6 +94,16 @@ namespace CBot.Structures
         }
 
         public Task<Dictionary<string, Invite>> FetchInvites()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return JsonSerializer.Serialize<AbstractGuildChannel>(this);
+        }
+
+        public Task<IChannel> Delete()
         {
             throw new NotImplementedException();
         }
