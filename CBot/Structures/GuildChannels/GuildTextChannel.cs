@@ -23,7 +23,7 @@ namespace CBot.Structures.Channels
 
         public long LastMessageId { get; set; }
 
-        public GuildTextChannel(BaseClient Client, Guild Guild, JsonElement Data) : base(Client, Guild, Data.GetProperty("id"))
+        public GuildTextChannel(BaseClient Client, Guild Guild, JsonElement Data) : base(Client, Guild, Data)
         {
             Patch(Data);
         }

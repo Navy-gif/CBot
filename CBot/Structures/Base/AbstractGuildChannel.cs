@@ -10,7 +10,7 @@ namespace CBot.Structures.Base
 {
     class AbstractGuildChannel : DiscordBaseStructure, IGuildChannel
     {
-
+        #region Properties
         public Guild Guild { get; internal set; }
 
         public int Type { get; internal set; }
@@ -34,13 +34,15 @@ namespace CBot.Structures.Base
 
         public long ParentChannelId { get; internal set; }
 
-        public AbstractGuildChannel(BaseClient Client, Guild Guild, JsonElement Data) : base(Client, Data)
+        #endregion Properties
+
+        public AbstractGuildChannel(BaseClient Client, Guild Guild, JsonElement Data) : base(Client, Data.GetProperty("id"))
         {
             _PermissionOverwrites = new List<PermissionOverwrite>();
             this.Guild = Guild;
         }
 
-        public virtual void Patch(JsonElement Data)
+        public override void Patch(JsonElement Data)
         {
 
             this.Type = Data.GetProperty("type").GetInt32();
@@ -68,22 +70,22 @@ namespace CBot.Structures.Base
             throw new NotImplementedException();
         }
 
-        public Task<AbstractGuildChannel> Edit(ChannelEditOptions Options)
+        public Task<IGuildChannel> Edit(ChannelEditOptions Options)
         {
             throw new NotImplementedException();
         }
 
-        public Task<AbstractGuildChannel> OverwritePermissions(PermissionOverwrite Overwrite)
+        public Task<IGuildChannel> OverwritePermissions(PermissionOverwrite Overwrite)
         {
             throw new NotImplementedException();
         }
 
-        public Task<AbstractGuildChannel> DeletePermissionOverwrite(PermissionOverwrite Overwrite)
+        public Task<IGuildChannel> DeletePermissionOverwrite(PermissionOverwrite Overwrite)
         {
             throw new NotImplementedException();
         }
 
-        public Task<AbstractGuildChannel> DeletePermissionOverwrite(long Id)
+        public Task<IGuildChannel> DeletePermissionOverwrite(long Id)
         {
             throw new NotImplementedException();
         }
