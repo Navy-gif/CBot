@@ -22,6 +22,11 @@ namespace CBot.Structures
             this.Client = Client;
         }
 
+        public DiscordBaseStructure(BaseClient Client)
+        {
+            this.Client = Client;
+        }
+
         public abstract void Patch(JsonElement Data);
         public abstract void Patch(Dictionary<string, JsonElement> Data);
 
