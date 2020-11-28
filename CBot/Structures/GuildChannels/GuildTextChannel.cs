@@ -23,8 +23,11 @@ namespace CBot.Structures.Channels
 
         public long LastMessageId { get; set; }
 
+        public Dictionary<long, Message> Messages;
+
         public GuildTextChannel(BaseClient Client, Guild Guild, JsonElement Data) : base(Client, Guild, Data)
         {
+            Messages = new Dictionary<long, Message>();
             Patch(Data);
         }
 
