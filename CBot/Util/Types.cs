@@ -7,13 +7,13 @@ namespace CBot.Util
     enum ChannelType
     {
 
-        Text,
-        Dm,
-        Voice,
-        GroupDm,
-        Category,
-        News,
-        Store
+        Text, //0
+        Dm, // 1
+        Voice, // 2
+        GroupDm, // 3
+        Category, // 4
+        News, // 5
+        Store // 6
 
     }
 
