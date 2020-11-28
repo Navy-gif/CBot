@@ -36,7 +36,7 @@ namespace CBot.DiscordPayloads
                 this.compress = false;
                 this.guild_subscriptions = true;
 
-                this.large_threshold = 50;
+                this.large_threshold = 250;
                 this.shard = null;
 
                 this.presence = null;
