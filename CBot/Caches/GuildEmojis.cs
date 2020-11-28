@@ -8,11 +8,14 @@ using System.Threading.Tasks;
 
 namespace CBot.Caches
 {
-    class GuildEmojis : BaseCache<string, Emoji>
+    class GuildEmojis : BaseCache<long, Emoji>
     {
-        public GuildEmojis(BaseClient Client, Guild Guild, JsonElement Emojis) : base (Client)
-        {
 
+        public Guild Guild { get; internal set; }
+
+        public GuildEmojis(BaseClient Client, Guild Guild) : base (Client)
+        {
+            this.Guild = Guild;
         }
 
         public override Emoji Create(RestOptions Data)
@@ -22,20 +25,22 @@ namespace CBot.Caches
 
         public override Emoji CreateEntry(JsonElement Data)
         {
-            throw new NotImplementedException();
+            Emoji Emoji = new Emoji(this.Client, Guild, Data);
+            _Cache.Add(Emoji.Id, Emoji);
+            return Emoji;
         }
 
-        public override BaseCache<string, Emoji> Fetch(CacheFetchOptions Options)
+        public override BaseCache<long, Emoji> Fetch(CacheFetchOptions Options)
         {
             throw new NotImplementedException();
         }
 
-        public override Task<Emoji> Fetch(string Key)
+        public override Task<Emoji> Fetch(long Key)
         {
             throw new NotImplementedException();
         }
 
-        public override Emoji Resolve(string Key)
+        public override Emoji Resolve(long Key)
         {
             throw new NotImplementedException();
         }

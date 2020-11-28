@@ -10,9 +10,12 @@ namespace CBot.Caches
 {
     class GuildMembers : BaseCache<long, GuildMember>
     {
+
+        Guild Guild;
+
         public GuildMembers(BaseClient Client, Guild Guild) : base(Client)
         {
-
+            this.Guild = Guild;
         }
 
         public override GuildMember Create(RestOptions Data)
@@ -22,7 +25,9 @@ namespace CBot.Caches
 
         public override GuildMember CreateEntry(JsonElement Data)
         {
-            throw new NotImplementedException();
+            GuildMember Member = new GuildMember(Client, Guild, Data);
+            _Cache.Add(Member.Id, Member);
+            return Member;
         }
 
         public override BaseCache<long, GuildMember> Fetch(CacheFetchOptions Options)

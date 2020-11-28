@@ -2,7 +2,6 @@
 using CBot.Structures;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -25,7 +24,7 @@ namespace CBot.Caches
         {
             long Id = long.Parse(Data["id"].GetString());
             Guild Guild = new Guild(Client, Data);
-            Cache.Add(Id, Guild);
+            _Cache.Add(Id, Guild);
             return Guild;
         }
 
@@ -33,7 +32,7 @@ namespace CBot.Caches
         {
             long Id = long.Parse(Data.GetProperty("id").GetString());
             Guild Guild = new Guild(Client, Data);
-            Cache.Add(Id, Guild);
+            _Cache.Add(Id, Guild);
             return Guild;
         }
 

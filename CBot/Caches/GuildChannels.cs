@@ -27,7 +27,6 @@ namespace CBot.Caches
 
         public override AbstractGuildChannel CreateEntry(JsonElement Data)
         {
-            long Id = long.Parse(Data.GetProperty("id").GetString());
             int Type = Data.GetProperty("type").GetInt32();
             AbstractGuildChannel Channel = null;
 
@@ -49,7 +48,7 @@ namespace CBot.Caches
                     Channel = new GuildStoreChannel(Client, Guild, Data);
                     break;
             }
-            Cache.Add(Id, Channel);
+            _Cache.Add(Channel.Id, Channel);
             return Channel;
         }
 

@@ -10,9 +10,12 @@ namespace CBot.Caches
 {
     class GuildRoles : BaseCache<long, Role>
     {
-        public GuildRoles(BaseClient Client, Guild Guild, JsonElement Roles) : base(Client)
-        {
 
+        public Guild Guild { get; internal set; }
+
+        public GuildRoles(BaseClient Client, Guild Guild) : base(Client)
+        {
+            this.Guild = Guild;
         }
 
         public override Role Create(RestOptions Data)
@@ -22,7 +25,11 @@ namespace CBot.Caches
 
         public override Role CreateEntry(JsonElement Data)
         {
-            throw new NotImplementedException();
+
+            Role Role = new Role(this.Client, Guild, Data);
+            this._Cache.Add(Role.Id, Role);
+            return Role;
+
         }
 
         public override BaseCache<long, Role> Fetch(CacheFetchOptions Options)

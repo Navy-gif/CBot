@@ -11,12 +11,14 @@ namespace CBot.Caches
     {
 
         protected BaseClient Client;
-        protected Dictionary<TKey, TVal> Cache;
+        protected Dictionary<TKey, TVal> _Cache;
+
+        public Dictionary<TKey, TVal>.ValueCollection Cache { get => _Cache.Values; internal set { } }
 
         public BaseCache (BaseClient Client)
         {
             this.Client = Client;
-            this.Cache = new Dictionary<TKey, TVal>();
+            this._Cache = new Dictionary<TKey, TVal>();
         }
 
         public abstract TVal Resolve(TKey Key);
@@ -27,23 +29,25 @@ namespace CBot.Caches
 
         public bool Has(TKey Key)
         {
-            return Cache.ContainsKey(Key);
+            return _Cache.ContainsKey(Key);
         }
 
         public TVal Get(TKey Key)
         {
-            if (Cache.TryGetValue(Key, out TVal Result)) return Result;
+            if (_Cache.TryGetValue(Key, out TVal Result)) return Result;
             else return default(TVal);
         }
 
         public bool TryGet(TKey Key, out TVal Result)
         {
-            return Cache.TryGetValue(Key, out Result);
+            return _Cache.TryGetValue(Key, out Result);
         }
 
         public abstract TVal Create(RestOptions Options);
 
         public abstract TVal CreateEntry(JsonElement Data);
+
+        public virtual void Add(TKey Id, TVal Value) => _Cache.Add(Id, Value);
 
     }
 }
