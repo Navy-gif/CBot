@@ -8,6 +8,11 @@ namespace CBot.Structures
 {
     class GuildMember : DiscordBaseStructure
     {
+
+        public Guild Guild { get; internal set; }
+
+        public new long Id { get => User.Id; internal set { } }
+
         public User User { get; internal set; }
 
         public string Nickname { get; internal set; }
@@ -29,8 +34,11 @@ namespace CBot.Structures
 
         }
 
-        public GuildMember(BaseClient Client, JsonElement Data) : base (Client, Data.GetProperty("id"))
+        public GuildMember(BaseClient Client, Guild Guild, JsonElement Data) : base (Client)
         {
+
+            this.Guild = Guild;
+            Patch(Data);
 
         }
 
@@ -45,8 +53,8 @@ namespace CBot.Structures
         public override void Patch(Dictionary<string, JsonElement> Data)
         {
 
-            Data.TryGetValue("nick", out JsonElement nick);
-            Nickname = nick.GetString();
+            if (Data.TryGetValue("nick", out JsonElement nick))
+                Nickname = nick.GetString();
 
             if (Data.TryGetValue("joined_at", out JsonElement joined))
                 JoinedAt = joined.GetDateTime();
@@ -54,17 +62,43 @@ namespace CBot.Structures
             if (Data.TryGetValue("premium_since", out JsonElement booster))
                 StartedBoosting = booster.GetDateTime();
 
-            Data.TryGetValue("roles", out JsonElement roles);
-            Roles = new MemberRoles(Client, this, roles);
+            if (Data.TryGetValue("roles", out JsonElement roles))
+                Roles = new MemberRoles(Client, this, roles);
 
             if (Data.TryGetValue("user", out JsonElement user))
                 ResolveUser(user);
 
-            Data.TryGetValue("deaf", out JsonElement deaf);
-            Deaf = deaf.GetBoolean();
+            if (Data.TryGetValue("deaf", out JsonElement deaf))
+                Deaf = deaf.GetBoolean();
 
-            Data.TryGetValue("mute", out JsonElement mute);
-            Mute = mute.GetBoolean();
+            if (Data.TryGetValue("mute", out JsonElement mute))
+                Mute = mute.GetBoolean();
+
+        }
+
+        public override void Patch(JsonElement Data)
+        {
+
+            if (Data.TryGetProperty("nick", out JsonElement nick))
+                Nickname = nick.GetString();
+
+            if (Data.TryGetProperty("joined_at", out JsonElement joined))
+                JoinedAt = joined.GetDateTime();
+
+            if (Data.TryGetProperty("premium_since", out JsonElement booster) && booster.TryGetDateTime(out DateTime time))
+                StartedBoosting = time;
+
+            if (Data.TryGetProperty("roles", out JsonElement roles))
+                Roles = new MemberRoles(Client, this, roles);
+
+            if (Data.TryGetProperty("user", out JsonElement user))
+                ResolveUser(user);
+
+            if (Data.TryGetProperty("deaf", out JsonElement deaf))
+                Deaf = deaf.GetBoolean();
+
+            if (Data.TryGetProperty("mute", out JsonElement mute))
+                Mute = mute.GetBoolean();
 
         }
     }

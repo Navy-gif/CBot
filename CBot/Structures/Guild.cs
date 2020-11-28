@@ -9,7 +9,7 @@ namespace CBot.Structures
 {
     class Guild : DiscordBaseStructure
     {
-        #region Properties
+        #region PubProperties
         public string Name { get; internal set; }
 
         public string Icon { get; internal set; }
@@ -106,7 +106,13 @@ namespace CBot.Structures
 
         public bool Partial { get; internal set; }
 
-        #endregion Properties
+        #endregion PubProperties
+
+        #region PrivProp
+
+        private bool _Patched = false;
+
+        #endregion PrivProp
 
         public Guild(BaseClient Client, JsonElement Data) : base(Client, Data.GetProperty("id"))
         {
@@ -185,9 +191,23 @@ namespace CBot.Structures
             if(Data.TryGetValue("joined_at", out temp))
                 JoinedAt = DateTime.Parse(temp.GetString());
 
+            if (_Patched) return;
+
             // TODO: Create role objects
+            Roles = new GuildRoles(this.Client, this);
+            ArrayEnumerator _Roles = Data["roles"].EnumerateArray();
+            foreach(JsonElement Role in _Roles)
+            {
+                Roles.CreateEntry(Role);
+            }
 
             // TODO: Create emoji objects
+            Emojis = new GuildEmojis(this.Client, this);
+            ArrayEnumerator _Emojis = Data["emojis"].EnumerateArray();
+            foreach(JsonElement Role in _Roles)
+            {
+                Emojis.CreateEntry(Role);
+            }
 
             // TODO: AFK channel
 
@@ -203,19 +223,31 @@ namespace CBot.Structures
                 Channels.CreateEntry(Channel);
             }
 
-
             // TODO: Members
+            Members = new GuildMembers(Client, this);
+            ArrayEnumerator _Members = Data["members"].EnumerateArray();
+            foreach(JsonElement Member in _Members)
+            {
+                //Console.WriteLine(Member);
+                Members.CreateEntry(Member);
+            }
 
             // TODO: Presences
 
             // TODO: Voice states
 
+            _Patched = true;
+
         }
 
         public override string ToString()
         {
-            return $"Guild: {Name} - {Id}";
+            return $"Guild: {Name} - {Id} - {MemberCount}";
         }
 
+        public override void Patch(JsonElement Data)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

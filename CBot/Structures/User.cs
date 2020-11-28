@@ -166,6 +166,11 @@ namespace CBot.Structures
             throw new NotImplementedException();
         }
 
+        public override void Patch(JsonElement Data)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion TextChannel methods
 
     }

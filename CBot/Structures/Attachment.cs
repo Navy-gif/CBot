@@ -5,19 +5,20 @@ using System.Text.Json;
 
 namespace CBot.Structures
 {
-    class Presence : DiscordBaseStructure
+    class Attachment : DiscordBaseStructure
     {
-        public Presence(BaseClient Client, JsonElement Data) : base(Client, Data.GetProperty("id"))
+
+        public Attachment(BaseClient Client, JsonElement Data) : base(Client, Data)
         {
 
         }
 
-        public override void Patch(Dictionary<string, JsonElement> Data)
+        public override void Patch(JsonElement Data)
         {
             throw new NotImplementedException();
         }
 
-        public override void Patch(JsonElement Data)
+        public override void Patch(Dictionary<string, JsonElement> Data)
         {
             throw new NotImplementedException();
         }

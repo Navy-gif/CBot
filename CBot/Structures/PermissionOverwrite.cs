@@ -19,7 +19,7 @@ namespace CBot.Structures
             Patch(Data);
         }
 
-        public void Patch(JsonElement Data)
+        public override void Patch(JsonElement Data)
         {
             this.Type = Data.GetProperty("type").GetInt32();
             this.Allow = int.Parse(Data.GetProperty("allow").GetString());
